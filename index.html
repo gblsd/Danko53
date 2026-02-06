@@ -67,7 +67,7 @@
         async function loadAlbums() {
             try {
                 const { data: albums, error } = await supabase
-                    .from('albums')
+                    .from('Albums')
                     .select('*')
                     .order('date', { ascending: false });
 
@@ -244,4 +244,5 @@
         loadAlbums();
     </script>
 </body>
+
 </html>
