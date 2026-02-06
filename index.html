@@ -14,12 +14,10 @@
             <h2 class="title-sub">Danko 53</h2>
             <p class="motto">Siempre listos para servir</p>
         </header>
-
         <nav class="main-nav">
             <a href="index.html" class="nav-link active">📖 Ver Álbumes</a>
             <a href="upload.html" class="nav-link">📤 Subir Recuerdo</a>
         </nav>
-
         <main class="content-main">
             <div class="filter-bar">
                 <select id="yearFilter" class="filter-select">
@@ -31,14 +29,12 @@
                     <option value="name">Por nombre</option>
                 </select>
             </div>
-
             <div id="albumsContainer" class="albums-grid">
                 <div class="loading-state">
                     <div class="compass-loader"></div>
                     <p>Cargando recuerdos...</p>
                 </div>
             </div>
-
             <div id="emptyState" class="empty-state" style="display: none;">
                 <div class="campfire-icon">🏕️</div>
                 <h3>Aún no hay recuerdos</h3>
@@ -46,22 +42,20 @@
                 <a href="upload.html" class="btn-primary">Subir primer recuerdo</a>
             </div>
         </main>
-
         <div id="albumModal" class="modal">
             <div class="modal-content">
-                <span class="modal-close">&times;</span>
+                <span class="modal-close">×</span>
                 <div id="albumDetails"></div>
             </div>
         </div>
     </div>
-
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-        // CONFIGURACIÓN DE SUPABASE - Reemplaza con tus datos
+        
+        // CONFIGURACIÓN DE SUPABASE
         const supabaseUrl = 'https://cughaowrzfyiivveorua.supabase.co';
         const supabaseKey = 'sb_publishable_vp0PYycdPpbmiYOnHazLVw_TgKXlQ_r';
-        
+       
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         async function loadAlbums() {
@@ -70,7 +64,7 @@
                     .from('Albums')
                     .select('*')
                     .order('date', { ascending: false });
-
+                
                 if (error) throw error;
 
                 const albumsContainer = document.getElementById('albumsContainer');
@@ -88,13 +82,11 @@
                 albums.forEach(album => {
                     const year = new Date(album.date).getFullYear();
                     years.add(year);
-
                     const albumCard = createAlbumCard(album);
                     albumsContainer.appendChild(albumCard);
                 });
 
                 updateYearFilter(years);
-
             } catch (error) {
                 console.error('Error cargando álbumes:', error);
                 document.getElementById('albumsContainer').innerHTML = `
@@ -110,15 +102,14 @@
             const card = document.createElement('div');
             card.className = 'album-card';
             card.dataset.year = new Date(album.date).getFullYear();
-            
+           
             const date = new Date(album.date).toLocaleDateString('es-ES', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
             });
-
             const fileCount = (album.files || []).length;
-            
+           
             card.innerHTML = `
                 <div class="album-header">
                     <div class="album-icon">📸</div>
@@ -129,14 +120,14 @@
                 <p class="album-description">${album.description || 'Sin descripción'}</p>
                 <button class="btn-view" onclick="viewAlbum(${album.id})">Ver álbum</button>
             `;
-            
+           
             return card;
         }
 
         function updateYearFilter(years) {
             const yearFilter = document.getElementById('yearFilter');
             const sortedYears = Array.from(years).sort((a, b) => b - a);
-            
+           
             sortedYears.forEach(year => {
                 const option = document.createElement('option');
                 option.value = year;
@@ -152,14 +143,13 @@
             const yearFilter = document.getElementById('yearFilter').value;
             const sortFilter = document.getElementById('sortFilter').value;
             const cards = document.querySelectorAll('.album-card');
-            
+           
             let visibleCards = Array.from(cards);
-
             if (yearFilter !== 'all') {
                 visibleCards = visibleCards.filter(card => card.dataset.year === yearFilter);
             }
-
             const container = document.getElementById('albumsContainer');
+
             if (sortFilter === 'oldest') {
                 visibleCards.reverse();
             } else if (sortFilter === 'name') {
@@ -172,7 +162,7 @@
 
             cards.forEach(card => card.style.display = 'none');
             visibleCards.forEach(card => card.style.display = 'block');
-            
+           
             container.innerHTML = '';
             visibleCards.forEach(card => container.appendChild(card));
         }
@@ -180,14 +170,14 @@
         window.viewAlbum = async function(albumId) {
             const modal = document.getElementById('albumModal');
             const modalContent = document.getElementById('albumDetails');
-            
+           
             try {
                 const { data: album, error } = await supabase
-                    .from('albums')
+                    .from('Albums')
                     .select('*')
                     .eq('id', albumId)
                     .single();
-
+                
                 if (error) throw error;
 
                 const date = new Date(album.date).toLocaleDateString('es-ES', {
@@ -195,17 +185,16 @@
                     month: 'long',
                     year: 'numeric'
                 });
-
                 let filesHTML = '';
-                
+               
                 if (album.files && album.files.length > 0) {
                     for (const file of album.files) {
                         const { data } = supabase.storage
-                            .from('albums')
+                            .from('Albums')
                             .getPublicUrl(file.path);
-                        
+                       
                         const url = data.publicUrl;
-                        
+                       
                         if (file.type.startsWith('image/')) {
                             filesHTML += `<img src="${url}" alt="${file.name}" class="modal-media" loading="lazy">`;
                         } else if (file.type.startsWith('video/')) {
@@ -222,7 +211,7 @@
                     <p class="modal-description">${album.description || ''}</p>
                     <div class="modal-files">${filesHTML}</div>
                 `;
-                
+               
                 modal.style.display = 'block';
             } catch (error) {
                 console.error('Error cargando álbum:', error);
@@ -244,5 +233,5 @@
         loadAlbums();
     </script>
 </body>
-
 </html>
+
