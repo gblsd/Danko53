@@ -223,7 +223,7 @@
 
                     // Obtener URL pública
                     const { data: urlData } = supabase.storage
-                        .from('albums')
+                        .from('Albums')
                         .getPublicUrl(filePath);
 
                     uploadedFiles.push({
@@ -268,4 +268,5 @@
         });
     </script>
 </body>
+
 </html>
