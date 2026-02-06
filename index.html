@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro de Oro - Danko 53</title>
+    <link href="/style.css" rel="stylesheet" type="text/css" media="all">
+</head>
+<body>
+    <div class="parchment-bg">
+        <header class="main-header">
+            <div class="scout-emblem">⚜️</div>
+            <h1 class="title-main">Libro de Oro</h1>
+            <h2 class="title-sub">Danko 53</h2>
+            <p class="motto">Siempre listos para servir</p>
+        </header>
+
+        <nav class="main-nav">
+            <a href="index.html" class="nav-link active">📖 Ver Álbumes</a>
+            <a href="upload.html" class="nav-link">📤 Subir Recuerdo</a>
+        </nav>
+
+        <main class="content-main">
+            <div class="filter-bar">
+                <select id="yearFilter" class="filter-select">
+                    <option value="all">Todos los años</option>
+                </select>
+                <select id="sortFilter" class="filter-select">
+                    <option value="newest">Más recientes</option>
+                    <option value="oldest">Más antiguos</option>
+                    <option value="name">Por nombre</option>
+                </select>
+            </div>
+
+            <div id="albumsContainer" class="albums-grid">
+                <div class="loading-state">
+                    <div class="compass-loader"></div>
+                    <p>Cargando recuerdos...</p>
+                </div>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="campfire-icon">🏕️</div>
+                <h3>Aún no hay recuerdos</h3>
+                <p>¡Comienza a crear el libro de oro de tu grupo scout!</p>
+                <a href="upload.html" class="btn-primary">Subir primer recuerdo</a>
+            </div>
+        </main>
+
+        <div id="albumModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close">&times;</span>
+                <div id="albumDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        // CONFIGURACIÓN DE SUPABASE - Reemplaza con tus datos
+        const supabaseUrl = 'https://cughaowrzfyiivveorua.supabase.co';
+        const supabaseKey = 'sb_publishable_vp0PYycdPpbmiYOnHazLVw_TgKXlQ_r';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        async function loadAlbums() {
+            try {
+                const { data: albums, error } = await supabase
+                    .from('albums')
+                    .select('*')
+                    .order('date', { ascending: false });
+
+                if (error) throw error;
+
+                const albumsContainer = document.getElementById('albumsContainer');
+                const emptyState = document.getElementById('emptyState');
+
+                if (!albums || albums.length === 0) {
+                    albumsContainer.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                albumsContainer.innerHTML = '';
+                const years = new Set();
+
+                albums.forEach(album => {
+                    const year = new Date(album.date).getFullYear();
+                    years.add(year);
+
+                    const albumCard = createAlbumCard(album);
+                    albumsContainer.appendChild(albumCard);
+                });
+
+                updateYearFilter(years);
+
+            } catch (error) {
+                console.error('Error cargando álbumes:', error);
+                document.getElementById('albumsContainer').innerHTML = `
+                    <div class="error-state">
+                        <p>⚠️ Error al cargar los recuerdos. Revisa la configuración de Supabase.</p>
+                        <p style="font-size: 0.9rem; color: #666;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function createAlbumCard(album) {
+            const card = document.createElement('div');
+            card.className = 'album-card';
+            card.dataset.year = new Date(album.date).getFullYear();
+            
+            const date = new Date(album.date).toLocaleDateString('es-ES', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            const fileCount = (album.files || []).length;
+            
+            card.innerHTML = `
+                <div class="album-header">
+                    <div class="album-icon">📸</div>
+                    <div class="album-badge">${fileCount} archivo${fileCount !== 1 ? 's' : ''}</div>
+                </div>
+                <h3 class="album-title">${album.title}</h3>
+                <p class="album-date">${date}</p>
+                <p class="album-description">${album.description || 'Sin descripción'}</p>
+                <button class="btn-view" onclick="viewAlbum(${album.id})">Ver álbum</button>
+            `;
+            
+            return card;
+        }
+
+        function updateYearFilter(years) {
+            const yearFilter = document.getElementById('yearFilter');
+            const sortedYears = Array.from(years).sort((a, b) => b - a);
+            
+            sortedYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilter.appendChild(option);
+            });
+        }
+
+        document.getElementById('yearFilter').addEventListener('change', filterAlbums);
+        document.getElementById('sortFilter').addEventListener('change', filterAlbums);
+
+        function filterAlbums() {
+            const yearFilter = document.getElementById('yearFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            const cards = document.querySelectorAll('.album-card');
+            
+            let visibleCards = Array.from(cards);
+
+            if (yearFilter !== 'all') {
+                visibleCards = visibleCards.filter(card => card.dataset.year === yearFilter);
+            }
+
+            const container = document.getElementById('albumsContainer');
+            if (sortFilter === 'oldest') {
+                visibleCards.reverse();
+            } else if (sortFilter === 'name') {
+                visibleCards.sort((a, b) => {
+                    const titleA = a.querySelector('.album-title').textContent;
+                    const titleB = b.querySelector('.album-title').textContent;
+                    return titleA.localeCompare(titleB);
+                });
+            }
+
+            cards.forEach(card => card.style.display = 'none');
+            visibleCards.forEach(card => card.style.display = 'block');
+            
+            container.innerHTML = '';
+            visibleCards.forEach(card => container.appendChild(card));
+        }
+
+        window.viewAlbum = async function(albumId) {
+            const modal = document.getElementById('albumModal');
+            const modalContent = document.getElementById('albumDetails');
+            
+            try {
+                const { data: album, error } = await supabase
+                    .from('albums')
+                    .select('*')
+                    .eq('id', albumId)
+                    .single();
+
+                if (error) throw error;
+
+                const date = new Date(album.date).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                let filesHTML = '';
+                
+                if (album.files && album.files.length > 0) {
+                    for (const file of album.files) {
+                        const { data } = supabase.storage
+                            .from('albums')
+                            .getPublicUrl(file.path);
+                        
+                        const url = data.publicUrl;
+                        
+                        if (file.type.startsWith('image/')) {
+                            filesHTML += `<img src="${url}" alt="${file.name}" class="modal-media" loading="lazy">`;
+                        } else if (file.type.startsWith('video/')) {
+                            filesHTML += `<video controls class="modal-media" preload="metadata"><source src="${url}" type="${file.type}"></video>`;
+                        } else if (file.type.startsWith('audio/')) {
+                            filesHTML += `<div class="audio-container"><p>🎵 ${file.name}</p><audio controls class="modal-audio"><source src="${url}" type="${file.type}"></audio></div>`;
+                        }
+                    }
+                }
+
+                modalContent.innerHTML = `
+                    <h2>${album.title}</h2>
+                    <p class="modal-date">${date}</p>
+                    <p class="modal-description">${album.description || ''}</p>
+                    <div class="modal-files">${filesHTML}</div>
+                `;
+                
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Error cargando álbum:', error);
+                alert('Error al cargar el álbum: ' + error.message);
+            }
+        };
+
+        document.querySelector('.modal-close').onclick = function() {
+            document.getElementById('albumModal').style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('albumModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        loadAlbums();
+    </script>
+</body>
+</html>
