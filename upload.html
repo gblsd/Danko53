@@ -77,6 +77,7 @@
         window.verifyPassword = function() {
             const input = document.getElementById('passwordInput');
             const error = document.getElementById('passwordError');
+           
             if (input.value === CORRECT_PASSWORD) {
                 document.getElementById('passwordForm').style.display = 'none';
                 document.getElementById('uploadForm').style.display = 'block';
@@ -96,20 +97,23 @@
             const fileUploadArea = document.getElementById('fileUploadArea');
             const fileInput = document.getElementById('fileInput');
 
-            if (!fileUploadArea || !fileInput) return console.error('Elementos de subida no encontrados');
+            if (!fileUploadArea || !fileInput) {
+                console.error('Elementos de subida no encontrados');
+                return;
+            }
 
             fileUploadArea.addEventListener('click', () => fileInput.click());
-            fileUploadArea.addEventListener('dragover', e => {
+            fileUploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.add('dragover');
             });
             fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
-            fileUploadArea.addEventListener('drop', e => {
+            fileUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.remove('dragover');
                 handleFiles(Array.from(e.dataTransfer.files));
             });
-            fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files)));
+            fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
         });
 
         function handleFiles(files) {
@@ -135,7 +139,7 @@
             });
         }
 
-        window.removeFile = index => {
+        window.removeFile = (index) => {
             selectedFiles.splice(index, 1);
             displayFilePreview();
         };
@@ -179,7 +183,7 @@
                     if (!response.ok) throw new Error('GoFile falló (status ' + response.status + ')');
 
                     const data = await response.json();
-                    if (data.status !== 'ok') throw new Error(data.message || 'Error desconocido en GoFile');
+                    if (data.status !== 'ok') throw new Error(data.message || 'Error desconocido');
 
                     const url = data.data.directLink || data.data.downloadPage;
 
