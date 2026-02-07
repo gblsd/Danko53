@@ -48,7 +48,7 @@
                             <div class="upload-placeholder">
                                 <div class="upload-icon">📎</div>
                                 <p>Haz clic o arrastra aquí</p>
-                                <span class="upload-hint">Imágenes, videos y audios permitidos (hasta 5 GB por archivo)</span>
+                                <span class="upload-hint">Imágenes, videos y audios permitidos (hasta 2 GB por archivo)</span>
                             </div>
                         </div>
                         <div id="filePreview" class="file-preview"></div>
@@ -97,23 +97,20 @@
             const fileUploadArea = document.getElementById('fileUploadArea');
             const fileInput = document.getElementById('fileInput');
 
-            if (!fileUploadArea || !fileInput) {
-                console.error('Elementos de subida no encontrados');
-                return;
-            }
+            if (!fileUploadArea || !fileInput) return console.error('Elementos no encontrados');
 
             fileUploadArea.addEventListener('click', () => fileInput.click());
-            fileUploadArea.addEventListener('dragover', (e) => {
+            fileUploadArea.addEventListener('dragover', e => {
                 e.preventDefault();
                 fileUploadArea.classList.add('dragover');
             });
             fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
-            fileUploadArea.addEventListener('drop', (e) => {
+            fileUploadArea.addEventListener('drop', e => {
                 e.preventDefault();
                 fileUploadArea.classList.remove('dragover');
                 handleFiles(Array.from(e.dataTransfer.files));
             });
-            fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+            fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files)));
         });
 
         function handleFiles(files) {
@@ -139,7 +136,7 @@
             });
         }
 
-        window.removeFile = (index) => {
+        window.removeFile = index => {
             selectedFiles.splice(index, 1);
             displayFilePreview();
         };
@@ -165,7 +162,7 @@
             progressDiv.style.display = 'block';
 
             try {
-                progressText.textContent = 'Subiendo a GoFile (hasta 5 GB por archivo)...';
+                progressText.textContent = 'Subiendo a tmpfiles.org (hasta 2 GB por archivo)...';
 
                 const uploadedFiles = [];
                 for (let i = 0; i < selectedFiles.length; i++) {
@@ -175,17 +172,17 @@
                     const formData = new FormData();
                     formData.append('file', file);
 
-                    const response = await fetch('https://api.gofile.io/uploadFile', {
+                    const response = await fetch('https://tmpfiles.org/api/v1/upload', {
                         method: 'POST',
                         body: formData
                     });
 
-                    if (!response.ok) throw new Error('GoFile falló (status ' + response.status + ')');
+                    if (!response.ok) throw new Error('tmpfiles falló (status ' + response.status + ')');
 
                     const data = await response.json();
-                    if (data.status !== 'ok') throw new Error(data.message || 'Error desconocido');
+                    if (data.status !== 'success') throw new Error(data.message || 'Error desconocido');
 
-                    const url = data.data.directLink || data.data.downloadPage;
+                    const url = data.data.url.direct || data.data.url.viewer;
 
                     uploadedFiles.push({
                         name: file.name,
@@ -218,7 +215,7 @@
                 albums.push(newAlbum);
 
                 const jsonString = JSON.stringify(albums, null, 2);
-                alert('✅ ¡Subido a GoFile!\n\n' +
+                alert('✅ ¡Subido a tmpfiles.org!\n\n' +
                       'Copia este JSON y pégalo en tu Gist:\n\n' +
                       jsonString + '\n\n' +
                       'Link Gist: https://gist.github.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/edit\n\n' +
@@ -235,4 +232,5 @@
     </script>
 </body>
 </html>
+
 
