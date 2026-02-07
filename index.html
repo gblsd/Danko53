@@ -50,27 +50,21 @@
         </div>
     </div>
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-        
-        // CONFIGURACIÓN DE SUPABASE
-        const supabaseUrl = 'https://cughaowrzfyiivveorua.supabase.co';
-        const supabaseKey = 'sb_publishable_vp0PYycdPpbmiYOnHazLVw_TgKXlQ_r';
-       
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        // ==================== CONFIGURACIÓN ====================
+        const GIST_RAW_URL = 'https://gist.githubusercontent.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/raw/78d3c9d3d2fa5b40665e04cb21c0a59d9f4c410e/albums.json';
 
         async function loadAlbums() {
             try {
-                const { data: albums, error } = await supabase
-                    .from('Albums')
-                    .select('*')
-                    .order('date', { ascending: false });
+                const res = await fetch(GIST_RAW_URL);
+                if (!res.ok) throw new Error('No se pudo cargar albums.json');
                 
-                if (error) throw error;
+                const albums = await res.json();
+                if (!Array.isArray(albums)) throw new Error('Formato inválido en albums.json');
 
                 const albumsContainer = document.getElementById('albumsContainer');
                 const emptyState = document.getElementById('emptyState');
 
-                if (!albums || albums.length === 0) {
+                if (albums.length === 0) {
                     albumsContainer.style.display = 'none';
                     emptyState.style.display = 'block';
                     return;
@@ -91,7 +85,7 @@
                 console.error('Error cargando álbumes:', error);
                 document.getElementById('albumsContainer').innerHTML = `
                     <div class="error-state">
-                        <p>⚠️ Error al cargar los recuerdos. Revisa la configuración de Supabase.</p>
+                        <p>⚠️ Error al cargar los recuerdos.</p>
                         <p style="font-size: 0.9rem; color: #666;">${error.message}</p>
                     </div>
                 `;
@@ -118,7 +112,7 @@
                 <h3 class="album-title">${album.title}</h3>
                 <p class="album-date">${date}</p>
                 <p class="album-description">${album.description || 'Sin descripción'}</p>
-                <button class="btn-view" onclick="viewAlbum(${album.id})">Ver álbum</button>
+                <button class="btn-view" onclick="viewAlbum('${album.id}')">Ver álbum</button>
             `;
            
             return card;
@@ -172,28 +166,23 @@
             const modalContent = document.getElementById('albumDetails');
            
             try {
-                const { data: album, error } = await supabase
-                    .from('Albums')
-                    .select('*')
-                    .eq('id', albumId)
-                    .single();
+                const res = await fetch(GIST_RAW_URL);
+                if (!res.ok) throw new Error('No se pudo cargar albums.json');
                 
-                if (error) throw error;
+                const albums = await res.json();
+                const album = albums.find(a => a.id === albumId);
+                if (!album) throw new Error('Álbum no encontrado');
 
                 const date = new Date(album.date).toLocaleDateString('es-ES', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric'
                 });
+
                 let filesHTML = '';
-               
                 if (album.files && album.files.length > 0) {
                     for (const file of album.files) {
-                        const { data } = supabase.storage
-                            .from('Albums')
-                            .getPublicUrl(file.path);
-                       
-                        const url = data.publicUrl;
+                        const url = file.url;
                        
                         if (file.type.startsWith('image/')) {
                             filesHTML += `<img src="${url}" alt="${file.name}" class="modal-media" loading="lazy">`;
@@ -234,4 +223,3 @@
     </script>
 </body>
 </html>
-
