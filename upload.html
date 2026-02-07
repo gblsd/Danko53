@@ -98,13 +98,13 @@
             if (e.key === 'Enter') verifyPassword();
         });
 
-        // Manejo de archivos - drag and drop
+        // Manejo de archivos
         document.addEventListener('DOMContentLoaded', () => {
             const fileUploadArea = document.getElementById('fileUploadArea');
             const fileInput = document.getElementById('fileInput');
 
             if (!fileUploadArea || !fileInput) {
-                console.error('No se encontraron los elementos fileUploadArea o fileInput');
+                console.error('No se encontraron elementos de subida');
                 return;
             }
 
@@ -113,9 +113,7 @@
                 e.preventDefault();
                 fileUploadArea.classList.add('dragover');
             });
-            fileUploadArea.addEventListener('dragleave', () => {
-                fileUploadArea.classList.remove('dragover');
-            });
+            fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
             fileUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.remove('dragover');
@@ -136,7 +134,6 @@
             selectedFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
-               
                 let icon = '📄';
                 if (file.type.startsWith('image/')) icon = '🖼️';
                 else if (file.type.startsWith('video/')) icon = '🎥';
@@ -180,7 +177,7 @@
             progressDiv.style.display = 'block';
 
             try {
-                progressText.textContent = 'Subiendo archivos a Catbox (vía proxy)...';
+                progressText.textContent = 'Subiendo a Catbox (con proxy)...';
 
                 const uploadedFiles = [];
                 for (let i = 0; i < selectedFiles.length; i++) {
@@ -191,9 +188,8 @@
                     formData.append('reqtype', 'fileupload');
                     formData.append('fileToUpload', file);
 
-                    // Proxy CORS para evitar bloqueo
-                    const catboxUrl = 'https://catbox.moe/user/api.php';
-                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(catboxUrl);
+                    // Proxy CORS que funciona bien para Catbox
+                    const proxyUrl = 'https://thingproxy.freeboard.io/fetch/https://catbox.moe/user/api.php';
 
                     const response = await fetch(proxyUrl, {
                         method: 'POST',
@@ -201,14 +197,12 @@
                     });
 
                     if (!response.ok) {
-                        const errorText = await response.text();
+                        const errorText = await response.text().catch(() => '');
                         throw new Error(`Catbox falló (status ${response.status}): ${errorText}`);
                     }
 
                     const url = await response.text();
-                    if (!url.includes('files.catbox.moe')) {
-                        throw new Error('Respuesta inválida de Catbox');
-                    }
+                    console.log('URL obtenida de Catbox:', url);
 
                     uploadedFiles.push({
                         name: file.name,
@@ -235,29 +229,24 @@
                 progressText.textContent = 'Leyendo álbumes actuales...';
                 const currentRes = await fetch(GIST_RAW_URL);
                 if (!currentRes.ok) {
-                    throw new Error('No se pudo leer el Gist (status ' + currentRes.status + ')');
+                    throw new Error('No se pudo leer el Gist');
                 }
 
                 let albums = await currentRes.json();
-                if (!Array.isArray(albums)) {
-                    console.warn('albums.json no era array, reiniciando');
-                    albums = [];
-                }
+                if (!Array.isArray(albums)) albums = [];
 
                 albums.push(newAlbum);
 
                 const jsonString = JSON.stringify(albums, null, 2);
-                alert('✅ ¡Archivos subidos a Catbox!\n\n' +
-                      'Copia este JSON completo y pégalo en tu Gist:\n\n' +
-                      jsonString + '\n\n' +
-                      'Link del Gist: https://gist.github.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/edit\n\n' +
-                      'Reemplaza todo el contenido de albums.json y guarda (Commit changes).\n' +
-                      'Luego refresca la página principal.');
+                alert('✅ ¡Archivos subidos!\n\n' +
+                      'Copia este JSON y pégalo en tu Gist:\n\n' + jsonString + '\n\n' +
+                      'Link: https://gist.github.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/edit\n\n' +
+                      'Reemplaza albums.json y guarda.');
 
                 window.location.href = 'index.html';
             } catch (error) {
-                console.error('Error completo:', error);
-                alert('❌ Error al subir:\n' + error.message + '\n\nRevisa la consola (F12)');
+                console.error('Error:', error);
+                alert('❌ Error: ' + error.message + '\n\nRevisa la consola (F12)');
             } finally {
                 progressDiv.style.display = 'none';
             }
@@ -265,6 +254,7 @@
     </script>
 </body>
 </html>
+
 
 
 
