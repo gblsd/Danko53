@@ -1,249 +1,181 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subir Recuerdo - Danko 53</title>
-    <link href="/style.css" rel="stylesheet" type="text/css" media="all">
-</head>
-<body>
-    <div class="parchment-bg">
-        <header class="main-header">
-            <div class="scout-emblem">⚜️</div>
-            <h1 class="title-main">Libro de Oro</h1>
-            <h2 class="title-sub">Danko 53</h2>
-        </header>
-        <nav class="main-nav">
-            <a href="index.html" class="nav-link">📖 Ver Álbumes</a>
-            <a href="upload.html" class="nav-link active">📤 Subir Recuerdo</a>
-        </nav>
-        <main class="content-main">
-            <!-- Formulario de verificación de contraseña -->
-            <div id="passwordForm" class="password-container">
-                <div class="lock-icon">🔐</div>
-                <h3>Verificación requerida</h3>
-                <p>Ingresa la contraseña del grupo para subir recuerdos</p>
-                <input type="password" id="passwordInput" placeholder="Contraseña..." class="password-input">
-                <button onclick="verifyPassword()" class="btn-primary">Verificar</button>
-                <p id="passwordError" class="error-message"></p>
-            </div>
-            <!-- Formulario de subida (oculto inicialmente) -->
-            <div id="uploadForm" class="upload-container" style="display: none;">
-                <h3>✨ Crear nuevo recuerdo</h3>
-               
-                <form id="albumForm">
-                    <div class="form-group">
-                        <label>📝 Nombre del álbum/actividad *</label>
-                        <input type="text" id="albumTitle" required placeholder="Ej: Campamento de Verano 2025">
-                    </div>
-                    <div class="form-group">
-                        <label>📅 Fecha de la actividad *</label>
-                        <input type="date" id="albumDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>📖 Descripción</label>
-                        <textarea id="albumDescription" rows="4" placeholder="Cuenta la historia de este momento especial..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>📁 Archivos (fotos, videos, audios) *</label>
-                        <div class="file-upload-area" id="fileUploadArea">
-                            <input type="file" id="fileInput" multiple accept="image/*,video/*,audio/*" hidden>
-                            <div class="upload-placeholder">
-                                <div class="upload-icon">📎</div>
-                                <p>Haz clic o arrastra archivos aquí</p>
-                                <span class="upload-hint">Imágenes, videos y audios permitidos</span>
-                            </div>
-                        </div>
-                        <div id="filePreview" class="file-preview"></div>
-                    </div>
-                    <div class="upload-progress" id="uploadProgress" style="display: none;">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill"></div>
-                        </div>
-                        <p id="progressText">Subiendo archivos...</p>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary btn-large">🚀 Crear álbum</button>
-                        <button type="button" onclick="resetForm()" class="btn-secondary">Cancelar</button>
-                    </div>
-                </form>
-            </div>
-        </main>
-    </div>
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-        
-        // CONFIGURACIÓN DE SUPABASE
-        const supabaseUrl = 'https://cughaowrzfyiivveorua.supabase.co';
-        const supabaseKey = 'sb_publishable_vp0PYycdPpbmiYOnHazLVw_TgKXlQ_r';
-       
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        const CORRECT_PASSWORD = "DankoPalmares53";
-        let selectedFiles = [];
+<script type="module">
+    // ==================== CONFIGURACIÓN ====================
+    const GIST_ID = 'TU_GIST_ID_AQUI';              // ← pon el ID del Gist
+    const GITHUB_TOKEN = 'ghp_TU_TOKEN_AQUI';       // ← tu token personal
+    const GIST_RAW_URL = `https://gist.githubusercontent.com/TU_USUARIO/${GIST_ID}/raw/albums.json`;
 
-        // Verificar contraseña
-        window.verifyPassword = function() {
-            const input = document.getElementById('passwordInput');
-            const error = document.getElementById('passwordError');
-           
-            if (input.value === CORRECT_PASSWORD) {
-                document.getElementById('passwordForm').style.display = 'none';
-                document.getElementById('uploadForm').style.display = 'block';
-                error.textContent = '';
-            } else {
-                error.textContent = '❌ Contraseña incorrecta. Intenta de nuevo.';
-                input.value = '';
-                input.focus();
-            }
-        };
+    // ==================== EL RESTO DEL CÓDIGO ====================
 
-        // Enter para verificar contraseña
-        document.getElementById('passwordInput')?.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                verifyPassword();
-            }
-        });
+    const CORRECT_PASSWORD = "DankoPalmares53";
+    let selectedFiles = [];
 
-        // Manejo de archivos - drag and drop
-        const fileUploadArea = document.getElementById('fileUploadArea');
-        const fileInput = document.getElementById('fileInput');
-        fileUploadArea.addEventListener('click', () => fileInput.click());
-        fileUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUploadArea.classList.add('dragover');
-        });
-        fileUploadArea.addEventListener('dragleave', () => {
-            fileUploadArea.classList.remove('dragover');
-        });
-        fileUploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileUploadArea.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files);
-            handleFiles(files);
-        });
-        fileInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            handleFiles(files);
-        });
+    // Verificar contraseña (sin cambios)
+    window.verifyPassword = function() {
+        const input = document.getElementById('passwordInput');
+        const error = document.getElementById('passwordError');
+        if (input.value === CORRECT_PASSWORD) {
+            document.getElementById('passwordForm').style.display = 'none';
+            document.getElementById('uploadForm').style.display = 'block';
+            error.textContent = '';
+        } else {
+            error.textContent = '❌ Contraseña incorrecta. Intenta de nuevo.';
+            input.value = '';
+            input.focus();
+        }
+    };
 
-        function handleFiles(files) {
-            selectedFiles = [...selectedFiles, ...files];
-            displayFilePreview();
+    document.getElementById('passwordInput')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') verifyPassword();
+    });
+
+    // Manejo de archivos (sin cambios)
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileInput = document.getElementById('fileInput');
+    fileUploadArea.addEventListener('click', () => fileInput.click());
+    fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+    fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+    fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        handleFiles(Array.from(e.dataTransfer.files));
+    });
+    fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+
+    function handleFiles(files) {
+        selectedFiles = [...selectedFiles, ...files];
+        displayFilePreview();
+    }
+
+    function displayFilePreview() {
+        const preview = document.getElementById('filePreview');
+        preview.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            let icon = '📄';
+            if (file.type.startsWith('image/')) icon = '🖼️';
+            if (file.type.startsWith('video/')) icon = '🎥';
+            if (file.type.startsWith('audio/')) icon = '🎵';
+            const size = (file.size / (1024 * 1024)).toFixed(2);
+            item.innerHTML = `
+                <span>${icon} ${file.name} (${size} MB)</span>
+                <button type="button" onclick="removeFile(${index})" class="btn-remove">✕</button>
+            `;
+            preview.appendChild(item);
+        });
+    }
+
+    window.removeFile = function(index) {
+        selectedFiles.splice(index, 1);
+        displayFilePreview();
+    };
+
+    window.resetForm = function() {
+        document.getElementById('albumForm').reset();
+        selectedFiles = [];
+        displayFilePreview();
+        window.location.href = 'index.html';
+    };
+
+    // Enviar formulario - ESTA ES LA PARTE NUEVA
+    document.getElementById('albumForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (selectedFiles.length === 0) {
+            alert('Selecciona al menos un archivo');
+            return;
         }
 
-        function displayFilePreview() {
-            const preview = document.getElementById('filePreview');
-            preview.innerHTML = '';
-            selectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-               
-                let icon = '📄';
-                if (file.type.startsWith('image/')) icon = '🖼️';
-                else if (file.type.startsWith('video/')) icon = '🎥';
-                else if (file.type.startsWith('audio/')) icon = '🎵';
-                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-                fileItem.innerHTML = `
-                    <span>${icon} ${file.name} (${fileSize} MB)</span>
-                    <button type="button" onclick="removeFile(${index})" class="btn-remove">✕</button>
-                `;
-                preview.appendChild(fileItem);
-            });
-        }
+        const title = document.getElementById('albumTitle').value;
+        const date = document.getElementById('albumDate').value;
+        const description = document.getElementById('albumDescription').value;
 
-        window.removeFile = function(index) {
-            selectedFiles.splice(index, 1);
-            displayFilePreview();
-        };
+        const progressDiv = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        progressDiv.style.display = 'block';
 
-        window.resetForm = function() {
-            document.getElementById('albumForm').reset();
-            selectedFiles = [];
-            displayFilePreview();
-            window.location.href = 'index.html';
-        };
+        try {
+            // 1. Subir cada archivo a Catbox
+            const uploadedFiles = [];
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                progressText.textContent = `Subiendo ${i+1}/${selectedFiles.length}: ${file.name}...`;
 
-        // Enviar formulario
-        document.getElementById('albumForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (selectedFiles.length === 0) {
-                alert('Por favor selecciona al menos un archivo');
-                return;
+                const formData = new FormData();
+                formData.append('reqtype', 'fileupload');
+                formData.append('fileToUpload', file);
+
+                const res = await fetch('https://catbox.moe/user/api.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error('Error subiendo a Catbox');
+
+                const url = await res.text(); // URL directa de Catbox
+
+                uploadedFiles.push({
+                    name: file.name,
+                    url: url,
+                    type: file.type,
+                    size: file.size
+                });
+
+                const progress = ((i + 1) / selectedFiles.length) * 100;
+                progressFill.style.width = progress + '%';
             }
-            const title = document.getElementById('albumTitle').value;
-            const date = document.getElementById('albumDate').value;
-            const description = document.getElementById('albumDescription').value;
-            const progressDiv = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-           
-            progressDiv.style.display = 'block';
-            try {
-                // Subir archivos a Supabase Storage
-                const uploadedFiles = [];
-               
-                for (let i = 0; i < selectedFiles.length; i++) {
-                    const file = selectedFiles[i];
-                    const fileName = `${Date.now()}_${file.name}`;
-                    const filePath = `albums/${fileName}`;
-                   
-                    progressText.textContent = `Subiendo archivo ${i + 1} de ${selectedFiles.length}: ${file.name}...`;
-                   
-                    // Subir archivo
-                    const { data, error } = await supabase.storage
-                        .from('Albums')
-                        .upload(filePath, file, {
-                            cacheControl: '3600',
-                            upsert: false
-                        });
-                    if (error) throw error;
 
-                    // Obtener URL pública
-                    const { data: urlData } = supabase.storage
-                        .from('Albums')
-                        .getPublicUrl(filePath);
+            // 2. Crear nuevo álbum
+            const newAlbum = {
+                id: Date.now().toString(),
+                title,
+                date,
+                description,
+                files: uploadedFiles,
+                created_at: new Date().toISOString()
+            };
 
-                    uploadedFiles.push({
-                        name: file.name,
-                        path: filePath,
-                        type: file.type,
-                        size: file.size,
-                        url: urlData.publicUrl
-                    });
+            // 3. Leer el JSON actual desde Gist
+            progressText.textContent = 'Guardando álbum...';
+            const currentRes = await fetch(GIST_RAW_URL);
+            let albums = await currentRes.json();
+            if (!Array.isArray(albums)) albums = [];
 
-                    // Actualizar barra de progreso
-                    const progress = ((i + 1) / selectedFiles.length) * 100;
-                    progressFill.style.width = progress + '%';
-                }
+            albums.push(newAlbum);
 
-                // Guardar álbum en la base de datos
-                progressText.textContent = 'Guardando álbum...';
-               
-                const { data: albumData, error: albumError } = await supabase
-                    .from('Albums')
-                    .insert([
-                        {
-                            title: title,
-                            date: date,
-                            description: description,
-                            files: uploadedFiles,
-                            created_at: new Date().toISOString()
+            // 4. Actualizar Gist
+            const updateRes = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `token ${GITHUB_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    files: {
+                        'albums.json': {
+                            content: JSON.stringify(albums, null, 2)
                         }
-                    ])
-                    .select();
-                
-                if (albumError) throw albumError;
+                    }
+                })
+            });
 
-                alert('✅ ¡Álbum creado exitosamente!');
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Error:', error);
-                alert('❌ Error al subir el álbum: ' + error.message);
-                progressDiv.style.display = 'none';
+            if (!updateRes.ok) {
+                const err = await updateRes.json();
+                throw new Error(err.message || 'Error actualizando Gist');
             }
-        });
-    </script>
-</body>
-</html>
+
+            alert('¡Álbum creado exitosamente!');
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error(error);
+            alert('Error al crear el álbum: ' + error.message);
+        } finally {
+            progressDiv.style.display = 'none';
+        }
+    });
+</script>
 
