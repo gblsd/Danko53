@@ -98,7 +98,7 @@
             if (e.key === 'Enter') verifyPassword();
         });
 
-        // Manejo de archivos - drag and drop (esperamos a que el DOM esté listo)
+        // Manejo de archivos - drag and drop
         document.addEventListener('DOMContentLoaded', () => {
             const fileUploadArea = document.getElementById('fileUploadArea');
             const fileInput = document.getElementById('fileInput');
@@ -180,7 +180,7 @@
             progressDiv.style.display = 'block';
 
             try {
-                progressText.textContent = 'Subiendo archivos a Catbox...';
+                progressText.textContent = 'Subiendo archivos a Catbox (vía proxy)...';
 
                 const uploadedFiles = [];
                 for (let i = 0; i < selectedFiles.length; i++) {
@@ -191,8 +191,9 @@
                     formData.append('reqtype', 'fileupload');
                     formData.append('fileToUpload', file);
 
-                    // Usamos proxy CORS para evitar el bloqueo
-                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://catbox.moe/user/api.php');
+                    // Proxy CORS para evitar bloqueo
+                    const catboxUrl = 'https://catbox.moe/user/api.php';
+                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(catboxUrl);
 
                     const response = await fetch(proxyUrl, {
                         method: 'POST',
@@ -200,11 +201,14 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error('Error subiendo a Catbox (status ' + response.status + ')');
+                        const errorText = await response.text();
+                        throw new Error(`Catbox falló (status ${response.status}): ${errorText}`);
                     }
 
                     const url = await response.text();
-                    console.log('URL de Catbox:', url); // para que veas en consola
+                    if (!url.includes('files.catbox.moe')) {
+                        throw new Error('Respuesta inválida de Catbox');
+                    }
 
                     uploadedFiles.push({
                         name: file.name,
@@ -243,17 +247,17 @@
                 albums.push(newAlbum);
 
                 const jsonString = JSON.stringify(albums, null, 2);
-                alert('✅ Archivos subidos a Catbox!\n\n' +
+                alert('✅ ¡Archivos subidos a Catbox!\n\n' +
                       'Copia este JSON completo y pégalo en tu Gist:\n\n' +
                       jsonString + '\n\n' +
                       'Link del Gist: https://gist.github.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/edit\n\n' +
                       'Reemplaza todo el contenido de albums.json y guarda (Commit changes).\n' +
-                      'Luego refresca la página principal para ver el álbum.');
+                      'Luego refresca la página principal.');
 
                 window.location.href = 'index.html';
             } catch (error) {
                 console.error('Error completo:', error);
-                alert('❌ Ocurrió un error:\n' + error.message + '\n\nRevisa la consola (F12) para más detalles.');
+                alert('❌ Error al subir:\n' + error.message + '\n\nRevisa la consola (F12)');
             } finally {
                 progressDiv.style.display = 'none';
             }
