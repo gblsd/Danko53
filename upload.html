@@ -100,17 +100,17 @@
             if (!fileUploadArea || !fileInput) return console.error('Elementos no encontrados');
 
             fileUploadArea.addEventListener('click', () => fileInput.click());
-            fileUploadArea.addEventListener('dragover', e => {
+            fileUploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.add('dragover');
             });
             fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
-            fileUploadArea.addEventListener('drop', e => {
+            fileUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.remove('dragover');
                 handleFiles(Array.from(e.dataTransfer.files));
             });
-            fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files)));
+            fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
         });
 
         function handleFiles(files) {
@@ -136,7 +136,7 @@
             });
         }
 
-        window.removeFile = index => {
+        window.removeFile = (index) => {
             selectedFiles.splice(index, 1);
             displayFilePreview();
         };
