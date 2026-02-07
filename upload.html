@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subir Recuerdo - Danko 53</title>
+    <title>Libro de Oro - Danko 53</title>
     <link href="/style.css" rel="stylesheet" type="text/css" media="all">
 </head>
 <body>
@@ -12,226 +12,238 @@
             <div class="scout-emblem">⚜️</div>
             <h1 class="title-main">Libro de Oro</h1>
             <h2 class="title-sub">Danko 53</h2>
+            <p class="motto">Siempre listos para servir</p>
         </header>
         <nav class="main-nav">
-            <a href="index.html" class="nav-link">📖 Ver Álbumes</a>
-            <a href="upload.html" class="nav-link active">📤 Subir Recuerdo</a>
+            <a href="index.html" class="nav-link active">📖 Ver Álbumes</a>
+            <a href="upload.html" class="nav-link">📤 Subir Recuerdo</a>
         </nav>
         <main class="content-main">
-            <div id="passwordForm" class="password-container">
-                <div class="lock-icon">🔐</div>
-                <h3>Verificación requerida</h3>
-                <p>Ingresa la contraseña del grupo para subir recuerdos</p>
-                <input type="password" id="passwordInput" placeholder="Contraseña..." class="password-input">
-                <button onclick="verifyPassword()" class="btn-primary">Verificar</button>
-                <p id="passwordError" class="error-message"></p>
+            <div class="filter-bar">
+                <select id="yearFilter" class="filter-select">
+                    <option value="all">Todos los años</option>
+                </select>
+                <select id="sortFilter" class="filter-select">
+                    <option value="newest">Más recientes</option>
+                    <option value="oldest">Más antiguos</option>
+                    <option value="name">Por nombre</option>
+                </select>
             </div>
-            <div id="uploadForm" class="upload-container" style="display: none;">
-                <h3>✨ Crear nuevo recuerdo</h3>
-                <form id="albumForm">
-                    <div class="form-group">
-                        <label>📝 Nombre del álbum/actividad *</label>
-                        <input type="text" id="albumTitle" required placeholder="Ej: Campamento de Verano 2025">
-                    </div>
-                    <div class="form-group">
-                        <label>📅 Fecha de la actividad *</label>
-                        <input type="date" id="albumDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>📖 Descripción</label>
-                        <textarea id="albumDescription" rows="4" placeholder="Cuenta la historia..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>📁 Archivos *</label>
-                        <div class="file-upload-area" id="fileUploadArea">
-                            <input type="file" id="fileInput" multiple accept="image/*,video/*,audio/*" hidden>
-                            <div class="upload-placeholder">
-                                <div class="upload-icon">📎</div>
-                                <p>Haz clic o arrastra aquí</p>
-                                <span class="upload-hint">Imágenes, videos y audios permitidos (hasta 2 GB por archivo)</span>
-                            </div>
-                        </div>
-                        <div id="filePreview" class="file-preview"></div>
-                    </div>
-                    <div class="upload-progress" id="uploadProgress" style="display: none;">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill"></div>
-                        </div>
-                        <p id="progressText">Subiendo...</p>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary btn-large">🚀 Crear álbum</button>
-                        <button type="button" onclick="resetForm()" class="btn-secondary">Cancelar</button>
-                    </div>
-                </form>
+            <div id="albumsContainer" class="albums-grid">
+                <div class="loading-state">
+                    <div class="compass-loader"></div>
+                    <p>Cargando recuerdos...</p>
+                </div>
+            </div>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="campfire-icon">🏕️</div>
+                <h3>Aún no hay recuerdos</h3>
+                <p>¡Comienza a crear el libro de oro de tu grupo scout!</p>
+                <a href="upload.html" class="btn-primary">Subir primer recuerdo</a>
             </div>
         </main>
+        <div id="albumModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close">×</span>
+                <div id="albumDetails"></div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
-        const GIST_RAW_URL = 'https://gist.githubusercontent.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/raw/78d3c9d3d2fa5b40665e04cb21c0a59d9f4c410e/albums.json';
+        const GIST_RAW_URL = 'https://gist.githubusercontent.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/raw/78d3c9d3d2fa5b40665e04cb21c0a59d9f4c410e/albums.json?' + Date.now(); // rompe caché
 
-        const CORRECT_PASSWORD = "DankoPalmares53";
-        let selectedFiles = [];
-
-        window.verifyPassword = function() {
-            const input = document.getElementById('passwordInput');
-            const error = document.getElementById('passwordError');
-           
-            if (input.value === CORRECT_PASSWORD) {
-                document.getElementById('passwordForm').style.display = 'none';
-                document.getElementById('uploadForm').style.display = 'block';
-                error.textContent = '';
-            } else {
-                error.textContent = '❌ Contraseña incorrecta.';
-                input.value = '';
-                input.focus();
-            }
-        };
-
-        document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') verifyPassword();
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const fileUploadArea = document.getElementById('fileUploadArea');
-            const fileInput = document.getElementById('fileInput');
-
-            if (!fileUploadArea || !fileInput) return console.error('Elementos no encontrados');
-
-            fileUploadArea.addEventListener('click', () => fileInput.click());
-            fileUploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                fileUploadArea.classList.add('dragover');
-            });
-            fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
-            fileUploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                fileUploadArea.classList.remove('dragover');
-                handleFiles(Array.from(e.dataTransfer.files));
-            });
-            fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
-        });
-
-        function handleFiles(files) {
-            selectedFiles = [...selectedFiles, ...files];
-            displayFilePreview();
-        }
-
-        function displayFilePreview() {
-            const preview = document.getElementById('filePreview');
-            if (!preview) return;
-            preview.innerHTML = '';
-            selectedFiles.forEach((file, index) => {
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                let icon = '📄';
-                if (file.type.startsWith('image/')) icon = '🖼️';
-                if (file.type.startsWith('video/')) icon = '🎥';
-                if (file.type.startsWith('audio/')) icon = '🎵';
-                const size = (file.size / (1024 * 1024)).toFixed(2);
-                item.innerHTML = `<span>${icon} ${file.name} (${size} MB)</span>
-                                  <button onclick="removeFile(${index})" class="btn-remove">✕</button>`;
-                preview.appendChild(item);
-            });
-        }
-
-        window.removeFile = (index) => {
-            selectedFiles.splice(index, 1);
-            displayFilePreview();
-        };
-
-        window.resetForm = () => {
-            document.getElementById('albumForm').reset();
-            selectedFiles = [];
-            displayFilePreview();
-            window.location.href = 'index.html';
-        };
-
-        document.getElementById('albumForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (selectedFiles.length === 0) return alert('Selecciona al menos un archivo');
-
-            const title = document.getElementById('albumTitle').value;
-            const date = document.getElementById('albumDate').value;
-            const description = document.getElementById('albumDescription').value;
-
-            const progressDiv = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            progressDiv.style.display = 'block';
-
+        async function loadAlbums() {
             try {
-                progressText.textContent = 'Subiendo a tmpfiles.org (hasta 2 GB por archivo)...';
+                console.log('Intentando cargar JSON desde:', GIST_RAW_URL);
+                const res = await fetch(GIST_RAW_URL);
+                console.log('Status de respuesta:', res.status);
 
-                const uploadedFiles = [];
-                for (let i = 0; i < selectedFiles.length; i++) {
-                    const file = selectedFiles[i];
-                    progressText.textContent = `Subiendo ${i+1}/${selectedFiles.length}: ${file.name}...`;
-
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    const response = await fetch('https://tmpfiles.org/api/v1/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!response.ok) throw new Error('tmpfiles falló (status ' + response.status + ')');
-
-                    const data = await response.json();
-                    if (data.status !== 'success') throw new Error(data.message || 'Error desconocido');
-
-                    const url = data.data.url.direct || data.data.url.viewer;
-
-                    uploadedFiles.push({
-                        name: file.name,
-                        url: url,
-                        type: file.type,
-                        size: file.size
-                    });
-
-                    const progress = ((i + 1) / selectedFiles.length) * 100;
-                    progressFill.style.width = progress + '%';
+                if (!res.ok) {
+                    throw new Error(`Error al cargar Gist: status ${res.status}`);
                 }
 
-                progressText.textContent = 'Preparando álbum...';
+                const text = await res.text();
+                console.log('Contenido crudo del JSON:', text);
 
-                const newAlbum = {
-                    id: Date.now().toString(),
-                    title,
-                    date,
-                    description,
-                    files: uploadedFiles,
-                    created_at: new Date().toISOString()
-                };
+                let albums;
+                try {
+                    albums = JSON.parse(text);
+                } catch (jsonError) {
+                    throw new Error('JSON inválido: ' + jsonError.message);
+                }
 
-                const currentRes = await fetch(GIST_RAW_URL);
-                if (!currentRes.ok) throw new Error('No se pudo leer Gist');
+                console.log('Álbumes parseados:', albums);
 
-                let albums = await currentRes.json();
-                if (!Array.isArray(albums)) albums = [];
+                if (!Array.isArray(albums)) {
+                    throw new Error('El JSON no es un array');
+                }
 
-                albums.push(newAlbum);
+                const albumsContainer = document.getElementById('albumsContainer');
+                const emptyState = document.getElementById('emptyState');
 
-                const jsonString = JSON.stringify(albums, null, 2);
-                alert('✅ ¡Subido a tmpfiles.org!\n\n' +
-                      'Copia este JSON y pégalo en tu Gist:\n\n' +
-                      jsonString + '\n\n' +
-                      'Link Gist: https://gist.github.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/edit\n\n' +
-                      'Reemplaza albums.json y guarda.');
+                if (albums.length === 0) {
+                    albumsContainer.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    console.log('No hay álbumes');
+                    return;
+                }
 
-                window.location.href = 'index.html';
+                albumsContainer.innerHTML = '';
+                const years = new Set();
+
+                albums.forEach(album => {
+                    if (!album || typeof album !== 'object') return;
+                    const year = new Date(album.date).getFullYear();
+                    years.add(year);
+                    const card = createAlbumCard(album);
+                    albumsContainer.appendChild(card);
+                });
+
+                updateYearFilter(years);
+                console.log('Álbumes renderizados:', albums.length);
             } catch (error) {
-                console.error('Error:', error);
-                alert('❌ Error: ' + error.message + '\nRevisa consola (F12)');
-            } finally {
-                progressDiv.style.display = 'none';
+                console.error('Error cargando álbumes:', error);
+                document.getElementById('albumsContainer').innerHTML = `
+                    <div class="error-state">
+                        <p>⚠️ Error al cargar los recuerdos.</p>
+                        <p>${error.message}</p>
+                        <p>Revisa la consola (F12) y el Gist raw: <a href="${GIST_RAW_URL}" target="_blank">Ver JSON</a></p>
+                    </div>
+                `;
             }
-        });
+        }
+
+        function createAlbumCard(album) {
+            const card = document.createElement('div');
+            card.className = 'album-card';
+            card.dataset.year = new Date(album.date).getFullYear();
+
+            const date = new Date(album.date).toLocaleDateString('es-ES', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            const fileCount = (album.files || []).length;
+
+            card.innerHTML = `
+                <div class="album-header">
+                    <div class="album-icon">📸</div>
+                    <div class="album-badge">${fileCount} archivo${fileCount !== 1 ? 's' : ''}</div>
+                </div>
+                <h3 class="album-title">${album.title || 'Sin título'}</h3>
+                <p class="album-date">${date}</p>
+                <p class="album-description">${album.description || 'Sin descripción'}</p>
+                <button class="btn-view" onclick="viewAlbum('${album.id}')">Ver álbum</button>
+            `;
+
+            return card;
+        }
+
+        function updateYearFilter(years) {
+            const yearFilter = document.getElementById('yearFilter');
+            yearFilter.innerHTML = '<option value="all">Todos los años</option>';
+            const sortedYears = Array.from(years).sort((a, b) => b - a);
+            sortedYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilter.appendChild(option);
+            });
+        }
+
+        document.getElementById('yearFilter').addEventListener('change', filterAlbums);
+        document.getElementById('sortFilter').addEventListener('change', filterAlbums);
+
+        function filterAlbums() {
+            const yearFilter = document.getElementById('yearFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            const cards = document.querySelectorAll('.album-card');
+
+            let visibleCards = Array.from(cards);
+            if (yearFilter !== 'all') {
+                visibleCards = visibleCards.filter(card => card.dataset.year === yearFilter);
+            }
+
+            const container = document.getElementById('albumsContainer');
+
+            if (sortFilter === 'oldest') {
+                visibleCards.reverse();
+            } else if (sortFilter === 'name') {
+                visibleCards.sort((a, b) => {
+                    const titleA = a.querySelector('.album-title').textContent;
+                    const titleB = b.querySelector('.album-title').textContent;
+                    return titleA.localeCompare(titleB);
+                });
+            }
+
+            cards.forEach(card => card.style.display = 'none');
+            visibleCards.forEach(card => card.style.display = 'block');
+
+            container.innerHTML = '';
+            visibleCards.forEach(card => container.appendChild(card));
+        }
+
+        window.viewAlbum = async function(albumId) {
+            const modal = document.getElementById('albumModal');
+            const modalContent = document.getElementById('albumDetails');
+
+            try {
+                const res = await fetch(GIST_RAW_URL);
+                if (!res.ok) throw new Error('No se pudo cargar JSON');
+
+                const albums = await res.json();
+                const album = albums.find(a => a.id === albumId || a.id == albumId);
+                if (!album) throw new Error('Álbum no encontrado');
+
+                const date = new Date(album.date).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                let filesHTML = '';
+                if (album.files && album.files.length > 0) {
+                    for (const file of album.files) {
+                        const url = file.url;
+
+                        if (file.type.startsWith('image/')) {
+                            filesHTML += `<img src="${url}" alt="${file.name}" class="modal-media" loading="lazy">`;
+                        } else if (file.type.startsWith('video/')) {
+                            filesHTML += `<video controls class="modal-media" preload="metadata"><source src="${url}" type="${file.type}"></video>`;
+                        } else if (file.type.startsWith('audio/')) {
+                            filesHTML += `<div class="audio-container"><p>🎵 ${file.name}</p><audio controls class="modal-audio"><source src="${url}" type="${file.type}"></audio></div>`;
+                        }
+                    }
+                }
+
+                modalContent.innerHTML = `
+                    <h2>${album.title || 'Sin título'}</h2>
+                    <p class="modal-date">${date}</p>
+                    <p class="modal-description">${album.description || ''}</p>
+                    <div class="modal-files">${filesHTML}</div>
+                `;
+
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Error cargando álbum:', error);
+                alert('Error al cargar el álbum: ' + error.message);
+            }
+        };
+
+        document.querySelector('.modal-close').onclick = function() {
+            document.getElementById('albumModal').style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('albumModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        loadAlbums();
     </script>
 </body>
 </html>
-
-
 
