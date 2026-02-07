@@ -71,7 +71,6 @@
         </main>
     </div>
 
-    <!-- ¡El script va AQUÍ ABAJO, al final del body! -->
     <script type="module">
         // ==================== CONFIGURACIÓN ====================
         const GIST_RAW_URL = 'https://gist.githubusercontent.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/raw/78d3c9d3d2fa5b40665e04cb21c0a59d9f4c410e/albums.json';
@@ -99,13 +98,13 @@
             if (e.key === 'Enter') verifyPassword();
         });
 
-        // Esperamos a que el DOM esté listo
+        // Manejo de archivos - drag and drop (esperamos a que el DOM esté listo)
         document.addEventListener('DOMContentLoaded', () => {
             const fileUploadArea = document.getElementById('fileUploadArea');
             const fileInput = document.getElementById('fileInput');
 
-            if (!fileUploadArea) {
-                console.error('No se encontró el elemento fileUploadArea');
+            if (!fileUploadArea || !fileInput) {
+                console.error('No se encontraron los elementos fileUploadArea o fileInput');
                 return;
             }
 
@@ -114,7 +113,9 @@
                 e.preventDefault();
                 fileUploadArea.classList.add('dragover');
             });
-            fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+            fileUploadArea.addEventListener('dragleave', () => {
+                fileUploadArea.classList.remove('dragover');
+            });
             fileUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.remove('dragover');
@@ -130,6 +131,7 @@
 
         function displayFilePreview() {
             const preview = document.getElementById('filePreview');
+            if (!preview) return;
             preview.innerHTML = '';
             selectedFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
@@ -160,7 +162,7 @@
             window.location.href = 'index.html';
         };
 
-        // Enviar formulario (versión con manejo de errores mejorado)
+        // Enviar formulario
         document.getElementById('albumForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (selectedFiles.length === 0) {
@@ -189,19 +191,33 @@
                     formData.append('reqtype', 'fileupload');
                     formData.append('fileToUpload', file);
 
-                    const response = await fetch('https://catbox.moe/user/api.php', {
+                    // Usamos proxy CORS para evitar el bloqueo
+                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://catbox.moe/user/api.php');
+
+                    const response = await fetch(proxyUrl, {
                         method: 'POST',
                         body: formData
                     });
 
-                    if (!response.ok) throw new Error('Catbox falló: ' + response.status);
+                    if (!response.ok) {
+                        throw new Error('Error subiendo a Catbox (status ' + response.status + ')');
+                    }
 
                     const url = await response.text();
-                    uploadedFiles.push({ name: file.name, url, type: file.type, size: file.size });
+                    console.log('URL de Catbox:', url); // para que veas en consola
+
+                    uploadedFiles.push({
+                        name: file.name,
+                        url: url,
+                        type: file.type,
+                        size: file.size
+                    });
 
                     const progress = ((i + 1) / selectedFiles.length) * 100;
                     progressFill.style.width = progress + '%';
                 }
+
+                progressText.textContent = 'Preparando álbum...';
 
                 const newAlbum = {
                     id: Date.now().toString(),
@@ -212,25 +228,32 @@
                     created_at: new Date().toISOString()
                 };
 
-                progressText.textContent = 'Preparando JSON...';
+                progressText.textContent = 'Leyendo álbumes actuales...';
                 const currentRes = await fetch(GIST_RAW_URL);
-                if (!currentRes.ok) throw new Error('No se pudo leer el Gist');
+                if (!currentRes.ok) {
+                    throw new Error('No se pudo leer el Gist (status ' + currentRes.status + ')');
+                }
 
                 let albums = await currentRes.json();
-                if (!Array.isArray(albums)) albums = [];
+                if (!Array.isArray(albums)) {
+                    console.warn('albums.json no era array, reiniciando');
+                    albums = [];
+                }
 
                 albums.push(newAlbum);
 
                 const jsonString = JSON.stringify(albums, null, 2);
-                alert('✅ Archivos subidos!\n\n' +
-                      'Copia este JSON completo y pégalo en tu Gist:\n\n' + jsonString + '\n\n' +
+                alert('✅ Archivos subidos a Catbox!\n\n' +
+                      'Copia este JSON completo y pégalo en tu Gist:\n\n' +
+                      jsonString + '\n\n' +
                       'Link del Gist: https://gist.github.com/gblsd/aba4eb5121fab803d603df4d76ee0d7b/edit\n\n' +
-                      'Luego refresca index.html para ver el álbum.');
+                      'Reemplaza todo el contenido de albums.json y guarda (Commit changes).\n' +
+                      'Luego refresca la página principal para ver el álbum.');
 
                 window.location.href = 'index.html';
             } catch (error) {
-                console.error('Error:', error);
-                alert('❌ Error: ' + error.message + '\n\nRevisa la consola (F12)');
+                console.error('Error completo:', error);
+                alert('❌ Ocurrió un error:\n' + error.message + '\n\nRevisa la consola (F12) para más detalles.');
             } finally {
                 progressDiv.style.display = 'none';
             }
@@ -238,6 +261,7 @@
     </script>
 </body>
 </html>
+
 
 
 
